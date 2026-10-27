@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#E6F4FF">
+<title>Bereit machen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1E2340;
+    --ink-soft: rgba(30, 35, 64, .62);
+    --paper: #E6F4FF;
+    --ring: #2B5BD7;
+    --ring-track: rgba(30, 35, 64, .10);
+    --go: #1FB964;
+    --go-ink: #ffffff;
+    --card: #ffffff;
+    --pad: clamp(16px, 4vw, 40px);
+  }
+  body[data-phase="low"]      { --paper: #FFF0B3; --ring: #E8930C; }
+  body[data-phase="late"]     { --paper: #FF6F61; --ring: #1E2340; --ink-soft: rgba(30,35,64,.75); --ring-track: rgba(30,35,64,.22); }
+  body[data-phase="finished"] { --paper: #CFF3DB; --ring: #1FB964; }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Fredoka", "Nunito", ui-rounded, system-ui, -apple-system, sans-serif;
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color .6s ease;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body[data-phase="late"] { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { background-color: #FF6F61; }
+    50%      { background-color: #FFB3A9; }
+  }
+
+  .app {
+    height: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "head" "lists" "stage" "foot";
+    row-gap: clamp(10px, 2vh, 20px);
+    padding: max(var(--pad), env(safe-area-inset-top)) var(--pad) max(var(--pad), env(safe-area-inset-bottom));
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  header { grid-area: head; }
+  .lists { grid-area: lists; }
+  .stage { grid-area: stage; }
+  footer { grid-area: foot; }
+  @media (min-width: 600px) {
+    .app {
+      grid-template-columns: minmax(230px, 36%) minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-areas: "head head" "lists stage" "lists foot";
+      column-gap: clamp(16px, 3vw, 40px);
+    }
+  }
+
+  /* header */
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .clock {
+    font-size: clamp(28px, 6vw, 40px);
+    font-weight: 700;
+    letter-spacing: .02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .ghost {
+    background: none;
+    border: 0;
+    color: var(--ink-soft);
+    font: inherit;
+    font-size: clamp(15px, 2.6vw, 18px);
+    padding: 8px 4px;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  .ghost:focus-visible, .done:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  .weather {
+    margin: 0 auto 0 14px;
+    font-size: clamp(15px, 2.6vw, 18px);
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .weather[hidden] { display: none; }
+
+  /* checklists */
+  .lists {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 2vh, 20px);
+    min-height: 0;
+    overflow-y: auto;
+    /* room for the focus outline, which the scroll container would clip */
+    padding: 5px;
+    margin: -5px;
+  }
+  .lists h2 {
+    margin: 0 0 6px 4px;
+    font-size: clamp(13px, 2vw, 15px);
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 1.2vh, 10px);
+  }
+  .item {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: center;
+    gap: 10px;
+    padding: clamp(8px, 1.4vh, 12px) 12px;
+    border: 3px solid transparent;
+    border-radius: 18px;
+    background: var(--card);
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: transform .15s ease, opacity .3s ease, background-color .3s ease, border-color .3s ease;
+  }
+  .item:active { transform: scale(.97); }
+  .item:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .box {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 3px solid var(--ring-track);
+    display: grid;
+    place-items: center;
+    color: transparent;
+    font-size: 18px;
+    font-weight: 700;
+    transition: background-color .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .emo { font-size: clamp(24px, 3.4vw, 32px); line-height: 1; }
+  .label { display: flex; flex-direction: column; min-width: 0; }
+  .name { font-size: clamp(16px, 2.4vw, 20px); font-weight: 600; line-height: 1.15; }
+  .time { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .item.ticked { background: rgba(255,255,255,.45); }
+  .item.ticked .box { background: var(--go); border-color: var(--go); color: var(--go-ink); }
+  .item.ticked .name { text-decoration: line-through; text-decoration-thickness: 2px; opacity: .55; }
+  .item.ticked .emo { opacity: .5; }
+  .item.current { border-color: var(--ring); }
+  /* kids' items can be dragged to reorder */
+  .kids .item { touch-action: none; -webkit-touch-callout: none; }
+  .kids li { position: relative; }
+  .item.dragging {
+    position: relative;
+    z-index: 5;
+    transition: none;
+    box-shadow: 0 10px 24px rgba(30, 35, 64, .22);
+    cursor: grabbing;
+  }
+  .parents .item { padding-top: 6px; padding-bottom: 6px; border-radius: 14px; }
+  .parents .box { width: 26px; height: 26px; font-size: 15px; }
+  .parents .emo { font-size: 22px; }
+  .parents .name { font-size: clamp(15px, 2.2vw, 17px); }
+
+  /* narrow screens: kids' list becomes a row of big chips, parents' list stays compact */
+  @media (max-width: 599px) {
+    .kids .list { flex-direction: row; justify-content: space-between; gap: 4px; }
+    .kids .item {
+      width: clamp(44px, 14vw, 60px);
+      aspect-ratio: 1;
+      padding: 0;
+      border-radius: 50%;
+      grid-template-columns: 1fr;
+      place-items: center;
+      position: relative;
+    }
+    .kids .label { display: none; }
+    .kids .box {
+      position: absolute; right: -4px; bottom: -4px;
+      width: 22px; height: 22px; font-size: 13px; border-width: 0;
+    }
+    .kids .item:not(.ticked) .box { display: none; }
+    .kids h2 { display: none; }
+    .parents .list { flex-direction: row; flex-wrap: wrap; }
+    .parents .item { width: auto; }
+  }
+
+  /* stage */
+  .stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 0;
+    gap: clamp(4px, 1vh, 10px);
+    container-type: inline-size;
+  }
+  .ring-wrap {
+    position: relative;
+    width: min(80cqi, 34vh, 300px);
+    aspect-ratio: 1;
+    flex-shrink: 0;
+  }
+  .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 18; }
+  .ring-track { stroke: var(--ring-track); }
+  .ring-fill {
+    stroke: var(--ring);
+    stroke-linecap: round;
+    stroke-dasharray: 754;
+    transition: stroke-dashoffset .9s linear, stroke .6s ease;
+  }
+  body[data-phase="late"] .ring-fill { opacity: 0; }
+  .ring-center {
+    position: absolute;
+    inset: 24px;
+    border-radius: 50%;
+    background: var(--card);
+    display: grid;
+    place-items: center;
+    font-size: min(36cqi, 15vh, 128px);
+    line-height: 1;
+  }
+  body[data-phase="late"] .ring-center { animation: wobble .8s ease-in-out infinite; }
+  @keyframes wobble {
+    0%, 100% { transform: rotate(0); }
+    25%      { transform: rotate(-7deg); }
+    75%      { transform: rotate(7deg); }
+  }
+
+  .task {
+    margin: clamp(6px, 1.5vh, 20px) 0 0;
+    font-size: clamp(24px, min(10cqi, 5.5vh), 52px);
+    font-weight: 700;
+    line-height: 1.05;
+  }
+  .timer {
+    margin: 0;
+    font-size: clamp(36px, min(16cqi, 8.5vh), 76px);
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .01em;
+  }
+  .hint {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: clamp(15px, min(3.4vw, 2.6vh), 22px);
+  }
+
+  /* footer */
+  footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding-top: clamp(8px, 2vh, 20px);
+  }
+  .done {
+    width: 100%;
+    max-width: 480px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--go);
+    color: var(--go-ink);
+    font: inherit;
+    font-weight: 700;
+    font-size: clamp(26px, 6vw, 40px);
+    padding: clamp(14px, 2.5vh, 24px) 24px;
+    cursor: pointer;
+    transition: transform .12s ease;
+  }
+  .done:active { transform: scale(.97); }
+
+  /* overlays */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    background: var(--paper);
+    padding: var(--pad);
+    cursor: pointer;
+    z-index: 10;
+  }
+  .overlay[hidden] { display: none; }
+  .overlay .big { font-size: clamp(90px, 28vw, 180px); line-height: 1; }
+  .overlay h1 { font-size: clamp(36px, 9vw, 64px); font-weight: 700; margin: 12px 0 8px; }
+  .overlay p { font-size: clamp(18px, 4vw, 26px); color: var(--ink-soft); margin: 0; }
+  .overlay .sticker { font-size: clamp(120px, min(36vw, 40vh), 240px); line-height: 1.25; margin: 4px 0 12px; }
+  .overlay:not([hidden]) .sticker { animation: pop .7s cubic-bezier(.3, 1.6, .5, 1) both; }
+  @keyframes pop {
+    0%   { transform: scale(0) rotate(-30deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body[data-phase="late"] { animation: none; }
+    body[data-phase="late"] .ring-center { animation: none; }
+    .ring-fill { transition: none; }
+    .overlay .sticker { animation: none; }
+  }
+</style>
+</head>
+<body data-phase="early">
+
+<div class="app" id="app">
+  <header>
+    <div class="clock" id="clock">--:--</div>
+    <div class="weather" id="weather" hidden></div>
+    <button class="ghost" id="reset" type="button">Neu starten</button>
+  </header>
+
+  <aside class="lists">
+    <section class="kids">
+      <h2>Meine Liste</h2>
+      <ol class="list" id="kidList"></ol>
+    </section>
+    <section class="parents">
+      <h2>Eltern</h2>
+      <ul class="list" id="parentList"></ul>
+    </section>
+  </aside>
+
+  <main class="stage">
+    <div class="ring-wrap">
+      <svg class="ring" viewBox="0 0 280 280" aria-hidden="true">
+        <circle class="ring-track" cx="140" cy="140" r="120"></circle>
+        <circle class="ring-fill" id="ringFill" cx="140" cy="140" r="120"></circle>
+      </svg>
+      <div class="ring-center" id="emoji" aria-hidden="true">🥛</div>
+    </div>
+    <h1 class="task" id="task">Milch trinken</h1>
+    <p class="timer" id="timer">13:00</p>
+    <p class="hint" id="hint">bis 07:18</p>
+  </main>
+
+  <footer>
+    <button class="done" id="done" type="button">Fertig ✓</button>
+    <button class="ghost" id="undo" type="button">Hoppla, rückgängig</button>
+  </footer>
+</div>
+
+<div class="overlay" id="start">
+  <div>
+    <div class="big">🌞</div>
+    <h1>Guten Morgen!</h1>
+    <p>Tippe irgendwo, um loszulegen</p>
+  </div>
+</div>
+
+<div class="overlay" id="finish" hidden>
+  <div>
+    <h1>Hier ist dein Sticker!</h1>
+    <div class="big sticker" id="sticker">🦄</div>
+    <p>Viel Spass in der Schule!</p>
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------
+// Edit the routine here. The morning runs from START to END (24h
+// "HH:MM") and the tasks' budgets (`min`, in minutes) fill that window.
+// If they don't add up, they're scaled to fit. Time saved on a task
+// carries over to the next one; time lost comes out of it. `id` must be
+// unique and stay the same (progress and the drag order are keyed by it).
+// ---------------------------------------------------------------
+const START = "07:10";
+const END = "07:55";
+const TASKS = [
+  { id: "milk",    min: 13, emoji: "🥛", name: "Milch trinken" },
+  { id: "teeth",   min: 8,  emoji: "🪥", name: "Zähne putzen" },
+  { id: "hair",    min: 4,  emoji: "🪮", name: "Haare kämmen" },
+  { id: "dress",   min: 10, emoji: "👕", name: "Anziehen" },
+  { id: "shoes",   min: 5,  emoji: "🧥", name: "Schuhe und Jacke" },
+  { id: "toilet",  min: 3,  emoji: "🚽", name: "Aufs WC gehen" },
+  { id: "goodbye", min: 2,  emoji: "👋", name: "Tschüss sagen" },
+];
+// Parents' to-dos: no timer, just tick them off. Optional `days` limits an
+// item to certain weekdays (0 = Sunday ... 5 = Friday, 6 = Saturday).
+// `id` must be unique and stay the same (progress is keyed by it).
+const PARENTS = [
+  { id: "znueni", emoji: "🍎", name: "Znüni vorbereiten" },
+  { id: "water",  emoji: "💧", name: "Wasserflasche füllen" },
+  { id: "swim",   emoji: "🩱", name: "Badesachen einpacken", days: [5] },
+];
+// Added to the parents' list on days with rain (or snow) in the school hours.
+const RAIN_GEAR = { id: "rain", emoji: "🌧️", name: "Regensachen", note: "Schirm · Stiefel · Regenhose · Regenjacke" };
+// Weather comes from Open-Meteo (free, no key). `from`..`to` are the hours of
+// the day that count as "out and about"; rain in any of them adds RAIN_GEAR.
+const WEATHER = { lat: 47.31, lon: 8.53, from: 7, to: 17, rainProb: 40 };
+const LOW_SECONDS = 60;        // last minute turns yellow
+const BEEP_EVERY_MS = 5000;    // how often to beep while overdue
+
+// ---- clock (supports ?at=07:14&speed=20 for practice runs) ----
+const params = new URLSearchParams(location.search);
+const SPEED = Math.max(0.1, Number(params.get("speed")) || 1);
+const AT = params.get("at");
+const PRACTICE = Boolean(AT || params.get("speed"));
+const realStart = Date.now();
+let simStart = realStart;
+if (AT) {
+  const [h, m, sec] = AT.split(":").map(Number);
+  const d = new Date(); d.setHours(h, m, sec || 0, 0);
+  simStart = d.getTime();
+}
+const now = () => simStart + (Date.now() - realStart) * SPEED;
+function todayAt(hhmm) {
+  const [h, m] = hhmm.split(":").map(Number);
+  const d = new Date(now()); d.setHours(h, m, 0, 0);
+  return d.getTime();
+}
+const pad = n => String(n).padStart(2, "0");
+const fmtClock = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function fmtDur(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return `${Math.floor(s / 60)}:${pad(s % 60)}`;
+}
+
+// ---- persistence (per day, reset automatically tomorrow) ----
+const dayKey = () => {
+  const d = new Date(now());
+  return `getready:${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}${PRACTICE ? ":practice" : ""}`;
+};
+let doneAt = {};        // kids: task id -> timestamp it was ticked
+let parentsDone = {};   // parents: item id -> timestamp it was ticked
+try {
+  const saved = JSON.parse(localStorage.getItem(dayKey()) || "{}");
+  // older formats kept both lists as index-based arrays; those are just dropped
+  if (saved.kids && !Array.isArray(saved.kids)) doneAt = saved.kids;
+  if (saved.parents && !Array.isArray(saved.parents)) parentsDone = saved.parents;
+} catch (e) {}
+const save = () => {
+  try { localStorage.setItem(dayKey(), JSON.stringify({ kids: doneAt, parents: parentsDone })); } catch (e) {}
+};
+
+// ---- order (drag and drop, remembered across days) ----
+const ORDER_KEY = "getready:order";
+let order = TASKS.slice();
+try {
+  const ids = JSON.parse(localStorage.getItem(ORDER_KEY) || "[]");
+  const byId = new Map(TASKS.map(t => [t.id, t]));
+  const known = ids.filter(id => byId.has(id)).map(id => byId.get(id));
+  order = known.concat(TASKS.filter(t => !known.includes(t)));   // new tasks go last
+} catch (e) {}
+const saveOrder = () => {
+  try { localStorage.setItem(ORDER_KEY, JSON.stringify(order.map(t => t.id))); } catch (e) {}
+};
+
+const isDone = t => Boolean(doneAt[t.id]);
+const firstOpen = () => order.findIndex(t => !isDone(t));
+
+// ---- budgets: always fill START..END exactly ----
+const WINDOW_MS = todayAt(END) - todayAt(START);
+const TOTAL_MIN = TASKS.reduce((s, t) => s + t.min, 0);
+if (TOTAL_MIN * 60000 !== WINDOW_MS) {
+  console.warn(`Budgets add up to ${TOTAL_MIN} min but ${START}-${END} is ${WINDOW_MS / 60000} min; scaling to fit.`);
+}
+const budget = t => t.min / TOTAL_MIN * WINDOW_MS;
+const fmtMin = ms => `${Math.round(ms / 60000)} min`;
+
+// ---- sound ----
+let audio = null;
+function unlockAudio() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return;
+  audio = audio || new Ctx();
+  if (audio.state === "suspended") audio.resume();
+}
+function tone(freq, at, dur, type = "sine", gain = 0.18) {
+  if (!audio) return;
+  const t0 = audio.currentTime + at;
+  const o = audio.createOscillator();
+  const g = audio.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(gain, t0 + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(audio.destination);
+  o.start(t0); o.stop(t0 + dur + 0.05);
+}
+const sounds = {
+  start:  () => { tone(523, 0, .25); tone(659, .18, .35); },                      // new task begins
+  late:   () => { [0, .2, .4].forEach(t => tone(880, t, .13, "square", .10)); },  // overdue
+  done:   () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .09, .3)); },
+  finish: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i * .12, .5)); },
+};
+
+// ---- DOM ----
+const $ = id => document.getElementById(id);
+const body = document.body;
+const el = {
+  clock: $("clock"), weather: $("weather"), kidList: $("kidList"), parentList: $("parentList"), ringFill: $("ringFill"), emoji: $("emoji"),
+  task: $("task"), timer: $("timer"), hint: $("hint"), done: $("done"), undo: $("undo"),
+  reset: $("reset"), start: $("start"), finish: $("finish"), sticker: $("sticker"),
+};
+const CIRC = 2 * Math.PI * 120;
+
+function buildList(listEl, items, onToggle) {
+  listEl.replaceChildren();
+  return items.map((t, i) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "item";
+    btn.title = t.name;
+    btn.innerHTML = `<span class="box" aria-hidden="true">✓</span><span class="emo" aria-hidden="true"></span>`
+      + `<span class="label"><span class="name"></span>${t.min || t.note ? '<span class="time"></span>' : ""}</span>`;
+    btn.querySelector(".emo").textContent = t.emoji;
+    btn.querySelector(".name").textContent = t.name;
+    if (t.min) btn.querySelector(".time").textContent = fmtMin(budget(t));
+    else if (t.note) btn.querySelector(".time").textContent = t.note;
+    btn.addEventListener("click", () => onToggle(i));
+    if (t.id) li.dataset.id = t.id;
+    li.appendChild(btn);
+    listEl.appendChild(li);
+    return btn;
+  });
+}
+let kidItems = [];
+function buildKids() {
+  kidItems = buildList(el.kidList, order, i => {
+    if (dragJustEnded) return;
+    isDone(order[i]) ? unmark(order[i]) : markDone(order[i]);
+  });
+  kidItems.forEach(b => enableDrag(b));
+}
+let parentItems = [], parentsToday = [];
+let rainy = false;
+function buildParents() {
+  const day = new Date(now()).getDay();
+  parentsToday = PARENTS.filter(p => !p.days || p.days.includes(day)).concat(rainy ? [RAIN_GEAR] : []);
+  parentItems = buildList(el.parentList, parentsToday, i => {
+    const p = parentsToday[i];
+    parentsDone[p.id] ? unmarkParent(p) : markParent(p);
+  });
+}
+const openParents = () => parentsToday.filter(p => !parentsDone[p.id]);
+// The morning is only over when both lists are ticked.
+const allDone = () => firstOpen() === -1 && openParents().length === 0;
+function renderLists() {
+  const cur = firstOpen();
+  kidItems.forEach((b, i) => {
+    b.classList.toggle("ticked", isDone(order[i]));
+    b.classList.toggle("current", i === cur);
+    b.setAttribute("aria-pressed", isDone(order[i]));
+  });
+  parentItems.forEach(b => {
+    const done = Boolean(parentsDone[b.parentElement.dataset.id]);
+    b.classList.toggle("ticked", done);
+    b.setAttribute("aria-pressed", done);
+  });
+}
+
+// ---- state ----
+let started = false;
+let prevKey = "";
+let lastBeep = 0;
+
+// The current task starts when the previous tick happened (at the earliest
+// START) and must end in time for every open task after it to get its full
+// budget before END. So time saved earlier flows into it, and time lost
+// earlier comes out of it.
+function taskWindow(i) {
+  const ticks = order.filter(isDone).map(t => doneAt[t.id]);
+  const start = Math.max(todayAt(START), ...ticks);
+  const after = order.slice(i + 1).filter(t => !isDone(t)).reduce((s, t) => s + budget(t), 0);
+  const end = todayAt(END) - after;
+  return { start, end, bonus: end - start - budget(order[i]) };
+}
+
+function tick() {
+  const t = now();
+  el.clock.textContent = fmtClock(t);
+
+  renderLists();
+  const idx = firstOpen();
+  if (idx === -1) {
+    if (allDone()) return showFinish();
+    // kid is done, parents still have to-dos: Fertig ticks those now
+    const open = openParents();
+    body.dataset.phase = "finished";
+    el.emoji.textContent = open[0].emoji;
+    el.task.textContent = open[0].name;
+    el.timer.textContent = open.length === 1 ? "noch 1 Sache" : `noch ${open.length} Sachen`;
+    el.hint.textContent = "für die Eltern";
+    el.ringFill.style.strokeDashoffset = 0;
+    el.undo.style.visibility = "visible";
+    prevKey = "parents";
+    return;
+  }
+
+  const cur = order[idx];
+  const { start, end, bonus } = taskWindow(idx);
+  let phase, frac;
+
+  if (t < todayAt(START)) {
+    phase = "early"; frac = 1;
+    el.timer.textContent = fmtDur(todayAt(START) - t);
+    el.hint.textContent = `geht los um ${START}`;
+  } else if (t < end) {
+    const left = end - t;
+    phase = left <= LOW_SECONDS * 1000 ? "low" : "active";
+    frac = left / Math.max(1, end - start);
+    el.timer.textContent = fmtDur(left);
+    el.hint.textContent = phase === "low" ? "Schnell, gleich ist die Zeit um!"
+      : bonus >= 60000 ? `bis ${fmtClock(end)} · ${fmtMin(bonus)} gespart 🎉`
+      : `bis ${fmtClock(end)}`;
+  } else {
+    phase = "late"; frac = 0;
+    el.timer.textContent = `${fmtDur(t - end)} zu spät`;
+    el.hint.textContent = `hätte um ${fmtClock(end)} fertig sein sollen`;
+  }
+
+  body.dataset.phase = phase;
+  el.emoji.textContent = cur.emoji;
+  el.task.textContent = cur.name;
+  el.ringFill.style.strokeDashoffset = CIRC * (1 - Math.min(1, Math.max(0, frac)));
+  el.undo.style.visibility = Object.values(doneAt).some(Boolean) || Object.values(parentsDone).some(Boolean) ? "visible" : "hidden";
+
+  // sounds on transitions
+  const key = `${cur.id}:${phase === "low" ? "active" : phase}`;
+  if (started && key !== prevKey) {
+    if (prevKey.startsWith(`${cur.id}:early`) && (phase === "active" || phase === "low")) sounds.start();
+    if (phase === "late") { sounds.late(); lastBeep = Date.now(); }
+  }
+  prevKey = key;
+  if (started && phase === "late" && Date.now() - lastBeep >= BEEP_EVERY_MS) {
+    sounds.late(); lastBeep = Date.now();
+  }
+}
+
+// Stickers for the finish screen, handed out in this order (one per
+// morning, next one each day), so the same one doesn't come back for months.
+const STICKERS = [
+  "🦄", "🚀", "🦖", "🌈", "🐙", "🏆", "🦊", "🍕", "🐳", "⚡️", "🦁", "🎸",
+  "🐼", "🌋", "🦋", "🏰", "🐸", "🛸", "🍩", "🐯", "🎈", "🦜", "🌟", "🐢",
+  "🦒", "🎨", "🐬", "🍉", "🦕", "🧸", "🐨", "🚂", "🦩", "🍦", "🐝", "🎪",
+  "🦔", "🌻", "🐧", "🏎️", "🦓", "🎃", "🐞", "🪐", "🦘", "🍓", "🐲", "⛵️",
+  "🦦", "🌵", "🐿️", "🎡", "🦭", "🍭", "🐊", "🚁", "🦚", "🥨", "🐘", "🎠",
+  "🦥", "🌺", "🐌", "🛹", "🦈", "🧁", "🐒", "🏔️", "🦉", "🍪", "🐠", "🪁",
+  "🐻", "🌊", "🦀", "🚒", "🐱", "🍒", "🐶", "🎢", "🦅", "🥥", "🐰", "🧩",
+  "🦝", "🌙", "🐡", "🚜", "🐮", "🍍", "🐷", "🎯", "🦫", "🍌", "🐹", "🪀",
+  "🦬", "☃️", "🐥", "🚲", "🐴", "🥕", "🐭", "🎺", "🐇", "🍄", "🦙", "💎",
+];
+// Today's sticker: picked once per day from a running counter, then kept.
+function todaysSticker() {
+  const key = `${dayKey()}:sticker`;
+  try {
+    let s = localStorage.getItem(key);
+    if (!s) {
+      const n = Number(localStorage.getItem("getready:stickerCount")) || 0;
+      s = STICKERS[n % STICKERS.length];
+      localStorage.setItem("getready:stickerCount", String(n + 1));
+      localStorage.setItem(key, s);
+    }
+    return s;
+  } catch (e) {
+    return STICKERS[Math.floor(now() / 86400000) % STICKERS.length];
+  }
+}
+let finishDismissed = false;   // tapped away; stays closed until something is unticked
+function showFinish() {
+  body.dataset.phase = "finished";
+  el.sticker.textContent = todaysSticker();
+  if (!finishDismissed) el.finish.hidden = false;
+}
+
+function markDone(t = order[firstOpen()]) {
+  if (!t || isDone(t)) return;
+  doneAt[t.id] = now();
+  save();
+  if (allDone()) sounds.finish(); else sounds.done();
+  prevKey = "";
+  tick();
+}
+function markParent(p) {
+  if (!p || parentsDone[p.id]) return;
+  parentsDone[p.id] = now(); save();
+  if (allDone()) sounds.finish(); else sounds.done();
+  tick();
+}
+function unmarkParent(p) {
+  delete parentsDone[p.id]; save();
+  el.finish.hidden = true; finishDismissed = false;
+  tick();
+}
+// The big button: the kid's current task, or once that list is done, the
+// parents' next open to-do.
+function pressDone() {
+  if (firstOpen() === -1) markParent(openParents()[0]); else markDone();
+}
+function unmark(t) {
+  delete doneAt[t.id]; save();
+  prevKey = "";
+  el.finish.hidden = true; finishDismissed = false;
+  tick();
+}
+function undo() {
+  // un-tick whatever was ticked most recently, on either list
+  const ticks = order.filter(isDone).map(t => ({ at: doneAt[t.id], undo: () => unmark(t) }))
+    .concat(parentsToday.filter(p => parentsDone[p.id]).map(p => ({ at: parentsDone[p.id], undo: () => unmarkParent(p) })));
+  const last = ticks.sort((a, b) => b.at - a.at)[0];
+  if (last) last.undo();
+}
+function reset() {
+  if (!confirm("Den Morgen neu starten?")) return;
+  doneAt = {}; parentsDone = {}; save();
+  prevKey = "";
+  el.finish.hidden = true; finishDismissed = false;
+  tick();
+}
+
+// ---- drag and drop to reorder the kids' list (mouse and touch) ----
+// A tap still ticks; moving more than a few pixels picks the item up.
+const DRAG_PX = 8;
+let dragJustEnded = false;
+function enableDrag(btn) {
+  const li = btn.parentElement;
+  let down = null, dragging = false;
+  btn.addEventListener("pointerdown", e => {
+    if (e.button !== 0) return;
+    const r = li.getBoundingClientRect();
+    down = { x: e.clientX, y: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top };
+    btn.setPointerCapture(e.pointerId);
+  });
+  btn.addEventListener("pointermove", e => {
+    if (!down) return;
+    if (!dragging) {
+      if (Math.hypot(e.clientX - down.x, e.clientY - down.y) < DRAG_PX) return;
+      dragging = true;
+      btn.classList.add("dragging");
+    }
+    // move our <li> in front of / behind whichever sibling the pointer is over
+    const over = [...el.kidList.children].find(o => {
+      if (o === li) return false;
+      const r = o.getBoundingClientRect();
+      return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    });
+    if (over) {
+      const sibs = [...el.kidList.children];
+      el.kidList.insertBefore(li, sibs.indexOf(li) < sibs.indexOf(over) ? over.nextSibling : over);
+    }
+    // the button follows the pointer, relative to its <li>'s new spot
+    const r = li.getBoundingClientRect();
+    btn.style.transform = `translate(${e.clientX - down.dx - r.left}px, ${e.clientY - down.dy - r.top}px)`;
+  });
+  const end = () => {
+    if (!down) return;
+    down = null;
+    if (!dragging) return;
+    dragging = false;
+    // swallow the click that follows the drop
+    dragJustEnded = true;
+    setTimeout(() => { dragJustEnded = false; }, 0);
+    const byId = new Map(order.map(t => [t.id, t]));
+    order = [...el.kidList.children].map(o => byId.get(o.dataset.id));
+    saveOrder();
+    buildKids();
+    prevKey = "";
+    tick();
+  };
+  btn.addEventListener("pointerup", end);
+  btn.addEventListener("pointercancel", end);
+}
+
+// ---- weather ----
+// WMO weather codes: 0 clear, 1-3 clouds, 45-48 fog, 51-57 drizzle, 61-67 rain,
+// 71-77 snow, 80-82 showers, 85-86 snow showers, 95-99 thunderstorm.
+const weatherEmoji = c => c === 0 ? "☀️" : c <= 2 ? "⛅" : c === 3 ? "☁️" : c <= 48 ? "🌫️"
+  : c <= 57 ? "🌦️" : c <= 67 ? "🌧️" : c <= 77 ? "🌨️" : c <= 82 ? "🌧️" : c <= 86 ? "🌨️" : "⛈️";
+const isSnow = c => (c >= 71 && c <= 77) || c === 85 || c === 86;
+async function loadWeather() {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${WEATHER.lat}&longitude=${WEATHER.lon}`
+    + `&current=temperature_2m,weather_code&hourly=precipitation_probability,precipitation,weather_code`
+    + `&timezone=auto&forecast_days=1`;
+  try {
+    const w = await (await fetch(url)).json();
+    const h = w.hourly;
+    const hours = h.time
+      .map((t, i) => ({ hour: Number(t.slice(11, 13)), prob: h.precipitation_probability[i], mm: h.precipitation[i], code: h.weather_code[i] }))
+      .filter(x => x.hour >= WEATHER.from && x.hour <= WEATHER.to);
+    const wet = hours.filter(x => x.prob >= WEATHER.rainProb || x.mm >= 0.2 || x.code >= 51);
+    rainy = wet.length > 0;
+    const code = rainy ? Math.max(...wet.map(x => x.code)) : w.current.weather_code;
+    let text = `${weatherEmoji(code)} ${Math.round(w.current.temperature_2m)}°`;
+    if (rainy) {
+      const kind = wet.every(x => isSnow(x.code)) ? "Schnee" : "Regen";
+      const soon = wet[0].hour <= new Date(now()).getHours();
+      text += soon ? ` · ${kind}` : ` · ${kind} ab ${pad(wet[0].hour)}:00`;
+    }
+    el.weather.textContent = text;
+    el.weather.hidden = false;
+  } catch (e) {
+    rainy = false;
+    el.weather.hidden = true;
+  }
+  buildParents();
+  tick();
+}
+
+el.done.addEventListener("click", pressDone);
+el.undo.addEventListener("click", undo);
+el.reset.addEventListener("click", reset);
+el.start.addEventListener("click", () => {
+  unlockAudio();
+  started = true;
+  el.start.hidden = true;
+  tick();
+});
+el.finish.addEventListener("click", () => {
+  // tapping the finish screen just closes it; the routine stays complete
+  el.finish.hidden = true; finishDismissed = true;
+});
+document.addEventListener("keydown", e => {
+  if (e.key === " " || e.key === "Enter") { if (!el.start.hidden) el.start.click(); else if (e.target === body) pressDone(); }
+});
+
+buildKids();
+buildParents();
+tick();
+setInterval(tick, 250);
+loadWeather();
+setInterval(loadWeather, 30 * 60 * 1000);
+</script>
+</body>
+</html>
