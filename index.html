@@ -94,14 +94,19 @@
     border-radius: 8px;
   }
   .ghost:focus-visible, .done:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
-  .weather {
+  .chips {
     margin: 0 auto 0 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 14px;
+  }
+  .chip {
     font-size: clamp(15px, 2.6vw, 18px);
     color: var(--ink-soft);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
-  .weather[hidden] { display: none; }
+  .chip[hidden] { display: none; }
 
   /* checklists */
   .lists {
@@ -335,7 +340,10 @@
 <div class="app" id="app">
   <header>
     <div class="clock" id="clock">--:--</div>
-    <div class="weather" id="weather" hidden></div>
+    <div class="chips">
+      <div class="chip" id="weather" hidden></div>
+      <div class="chip" id="buddy" hidden></div>
+    </div>
     <button class="ghost" id="reset" type="button">Neu starten</button>
   </header>
 
@@ -381,7 +389,7 @@
   <div>
     <h1>Hier ist dein Sticker!</h1>
     <div class="big sticker" id="sticker">🦄</div>
-    <p>Viel Spass in der Schule!</p>
+    <p id="bye">Viel Spass in der Schule!</p>
   </div>
 </div>
 
@@ -404,19 +412,44 @@ const TASKS = [
   { id: "toilet",  min: 3,  emoji: "🚽", name: "Aufs WC gehen" },
   { id: "goodbye", min: 2,  emoji: "👋", name: "Tschüss sagen" },
 ];
+// Personal settings are not in this file (it is public). They come from the
+// link's hash, which never reaches a server, and are remembered on the device:
+//   index.html#buddy=Name&buddyDays=1,4,5&swim=2026-08-28,2026-09-11&lat=47.4&lon=8.5
+// buddy:     who she walks to school with; buddyDays: on which weekdays (1 = Monday)
+// swim:      swim days ("YYYY-MM-DD"); without it, swim stuff shows every Friday
+// lat, lon:  where to get the weather for
+// Opening a link with a new hash replaces the saved settings.
+const PERSONAL = (() => {
+  let raw = decodeURIComponent(location.hash.slice(1));
+  try {
+    if (raw) localStorage.setItem("getready:personal", raw);
+    else raw = localStorage.getItem("getready:personal") || "";
+  } catch (e) {}
+  const h = new URLSearchParams(raw);
+  const list = k => (h.get(k) || "").split(",").map(x => x.trim()).filter(Boolean);
+  return { buddy: h.get("buddy"), buddyDays: list("buddyDays").map(Number), swim: list("swim"),
+           lat: Number(h.get("lat")) || null, lon: Number(h.get("lon")) || null };
+})();
 // Parents' to-dos: no timer, just tick them off. Optional `days` limits an
-// item to certain weekdays (0 = Sunday ... 5 = Friday, 6 = Saturday).
+// item to certain weekdays (0 = Sunday ... 5 = Friday, 6 = Saturday),
+// optional `dates` to certain dates ("YYYY-MM-DD").
 // `id` must be unique and stay the same (progress is keyed by it).
 const PARENTS = [
   { id: "znueni", emoji: "🍎", name: "Znüni vorbereiten" },
   { id: "water",  emoji: "💧", name: "Wasserflasche füllen" },
-  { id: "swim",   emoji: "🩱", name: "Badesachen einpacken", days: [5] },
+  { id: "swim",   emoji: "🩱", name: "Badesachen einpacken",
+    ...(PERSONAL.swim.length ? { dates: PERSONAL.swim } : { days: [5] }) },
 ];
+// Who walks to school with her, by weekday (1 = Monday ... 5 = Friday).
+const BUDDY = PERSONAL.buddy
+  ? { name: PERSONAL.buddy, emoji: "👭", days: PERSONAL.buddyDays.length ? PERSONAL.buddyDays : [1, 2, 3, 4, 5] }
+  : null;
 // Added to the parents' list on days with rain (or snow) in the school hours.
 const RAIN_GEAR = { id: "rain", emoji: "🌧️", name: "Regensachen", note: "Schirm · Stiefel · Regenhose · Regenjacke" };
 // Weather comes from Open-Meteo (free, no key). `from`..`to` are the hours of
 // the day that count as "out and about"; rain in any of them adds RAIN_GEAR.
-const WEATHER = { lat: 47.31, lon: 8.53, from: 7, to: 17, rainProb: 40 };
+// The default spot is Zürich; the personal link can set its own.
+const WEATHER = { lat: PERSONAL.lat ?? 47.37, lon: PERSONAL.lon ?? 8.54, from: 7, to: 17, rainProb: 40 };
 const LOW_SECONDS = 60;        // last minute turns yellow
 const BEEP_EVERY_MS = 5000;    // how often to beep while overdue
 
@@ -446,10 +479,11 @@ function fmtDur(ms) {
 }
 
 // ---- persistence (per day, reset automatically tomorrow) ----
-const dayKey = () => {
+const today = () => {
   const d = new Date(now());
-  return `getready:${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}${PRACTICE ? ":practice" : ""}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
+const dayKey = () => `getready:${today()}${PRACTICE ? ":practice" : ""}`;
 let doneAt = {};        // kids: task id -> timestamp it was ticked
 let parentsDone = {};   // parents: item id -> timestamp it was ticked
 try {
@@ -520,7 +554,7 @@ const body = document.body;
 const el = {
   clock: $("clock"), weather: $("weather"), kidList: $("kidList"), parentList: $("parentList"), ringFill: $("ringFill"), emoji: $("emoji"),
   task: $("task"), timer: $("timer"), hint: $("hint"), done: $("done"), undo: $("undo"),
-  reset: $("reset"), start: $("start"), finish: $("finish"), sticker: $("sticker"),
+  buddy: $("buddy"), bye: $("bye"), reset: $("reset"), start: $("start"), finish: $("finish"), sticker: $("sticker"),
 };
 const CIRC = 2 * Math.PI * 120;
 
@@ -556,12 +590,21 @@ function buildKids() {
 let parentItems = [], parentsToday = [];
 let rainy = false;
 function buildParents() {
-  const day = new Date(now()).getDay();
-  parentsToday = PARENTS.filter(p => !p.days || p.days.includes(day)).concat(rainy ? [RAIN_GEAR] : []);
+  const day = new Date(now()).getDay(), date = today();
+  parentsToday = PARENTS
+    .filter(p => (!p.days || p.days.includes(day)) && (!p.dates || p.dates.includes(date)))
+    .concat(rainy ? [RAIN_GEAR] : []);
   parentItems = buildList(el.parentList, parentsToday, i => {
     const p = parentsToday[i];
     parentsDone[p.id] ? unmarkParent(p) : markParent(p);
   });
+}
+// On the buddy's days: header chip + finish screen.
+function renderBuddy() {
+  const withBuddy = Boolean(BUDDY && BUDDY.days.includes(new Date(now()).getDay()));
+  el.buddy.textContent = withBuddy ? `${BUDDY.emoji} heute mit ${BUDDY.name}` : "";
+  el.buddy.hidden = !withBuddy;
+  el.bye.textContent = withBuddy ? `Viel Spass in der Schule mit ${BUDDY.name}!` : "Viel Spass in der Schule!";
 }
 const openParents = () => parentsToday.filter(p => !parentsDone[p.id]);
 // The morning is only over when both lists are ticked.
@@ -824,6 +867,7 @@ async function loadWeather() {
     el.weather.hidden = true;
   }
   buildParents();
+  renderBuddy();
   tick();
 }
 
@@ -846,6 +890,7 @@ document.addEventListener("keydown", e => {
 
 buildKids();
 buildParents();
+renderBuddy();
 tick();
 setInterval(tick, 250);
 loadWeather();

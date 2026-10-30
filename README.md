@@ -34,7 +34,7 @@ The morning has a hard window, **07:10 to 07:55**, and every task has a
 - **Drag and drop** an item to reorder the routine (mouse or finger). A plain
   tap still ticks. The order is remembered across days.
 - A second, smaller **Eltern** checklist below it holds untimed to-dos
-  (Znüni, water bottle; swim stuff on Fridays; rain gear on rainy days).
+  (Znüni, water bottle; swim stuff on swim days; rain gear on rainy days).
   They count: the morning is only finished when both lists are ticked. Once
   the kid's list is done, the middle shows the parents' next open to-do
   ("noch 2 Sachen · für die Eltern") and **Fertig** ticks that.
@@ -44,8 +44,12 @@ The morning has a hard window, **07:10 to 07:55**, and every task has a
   precipitation), the header says when it starts (`🌧️ 9° · Regen ab 10:00`)
   and a **Regensachen** item (Schirm, Stiefel, Regenhose, Regenjacke) is added
   to the parents' list. Location and thresholds live in the `WEATHER`
-  constant at the top of the script; the default is Adliswil. Without
+  constant at the top of the script; the default is Zürich (the personal
+  link below can set another spot). Without
   internet the chip stays hidden and no rain item is shown.
+- **School buddy**: on the days she walks to school with someone, the header
+  shows `👭 heute mit <Name>` and the finish screen says
+  "Viel Spass in der Schule mit <Name>!". Set via the personal link below.
 - Background colour tells the state at a glance: blue while on track, yellow
   in the last minute, pulsing red when overdue.
 - Beeps every 5 seconds while overdue, plays a chime when the morning starts,
@@ -71,7 +75,32 @@ The morning has a hard window, **07:10 to 07:55**, and every task has a
 | 2 min  | Tschüss sagen        |
 
 Parents: Znüni vorbereiten, Wasserflasche füllen, Badesachen einpacken
-(Fridays), Regensachen (rainy days).
+(swim days), Regensachen (rainy days).
+
+Badesachen shows every Friday by default. If swimming is only on some
+Fridays, list the dates in the personal link below.
+
+## Personal settings
+
+This repo and the GitHub Pages site are public, so names, swim dates and the
+location are not in the code. They go in the hash of a link, which the
+browser never sends to a server, and the app remembers them on the device:
+
+```
+https://bersling.github.io/getready/#buddy=Name&buddyDays=1,4,5&swim=2026-08-28,2026-09-11&lat=47.4&lon=8.5
+```
+
+| Key         | Meaning                                                    |
+| ----------- | ---------------------------------------------------------- |
+| `buddy`     | who she walks to school with                               |
+| `buddyDays` | on which weekdays (1 = Monday ... 5 = Friday)              |
+| `swim`      | swim days, `YYYY-MM-DD`, comma separated                   |
+| `lat`,`lon` | where to get the weather for                               |
+
+Open the link once on the device (or add it to the home screen). Opening a
+link with a new hash replaces all saved settings, so always send the full set.
+Keep the real link out of this repo; `personal-link.txt` is git-ignored for
+that.
 
 To change it, edit `START`, `END` and the `TASKS` array at the top of the
 script in `index.html`. If the budgets don't add up to the window, they're
@@ -79,7 +108,8 @@ scaled to fit (with a console warning). Keep each task's `id` stable;
 progress and the saved drag order are keyed by it.
 
 The parents' list is the `PARENTS` array right below. Add `days: [5]` to an
-item to show it only on certain weekdays (0 = Sunday, 5 = Friday).
+item to show it only on certain weekdays (0 = Sunday, 5 = Friday), or
+`dates: ["2026-11-06", ...]` for certain dates only.
 
 The stickers are the `STICKERS` array; add more to the end.
 
