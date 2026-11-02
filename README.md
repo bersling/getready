@@ -14,10 +14,10 @@ so don't skip it.
 
 ## How the timing works
 
-The morning has a hard window, **07:10 to 07:55**, and every task has a
+The morning has a hard window, **07:15 to 07:55**, and every task has a
 **time budget** (minutes). The budgets fill the window exactly.
 
-- A task starts the moment the previous one is ticked (at the earliest 07:10).
+- A task starts the moment the previous one is ticked (at the earliest 07:15).
 - Its deadline is "late enough that every task still open after it gets its
   full budget before 07:55". So:
   - **Done early?** The saved time is added to the next task
@@ -66,10 +66,10 @@ The morning has a hard window, **07:10 to 07:55**, and every task has a
 
 | Budget | Task                 |
 | ------ | -------------------- |
-| 13 min | Milch trinken        |
-| 8 min  | Zähne putzen         |
+| 10 min | Milch trinken        |
+| 7 min  | Zähne putzen         |
 | 4 min  | Haare kämmen         |
-| 10 min | Anziehen             |
+| 9 min  | Anziehen             |
 | 5 min  | Schuhe und Jacke     |
 | 3 min  | Aufs WC gehen        |
 | 2 min  | Tschüss sagen        |
