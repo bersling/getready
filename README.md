@@ -34,7 +34,7 @@ The morning has a hard window, **07:15 to 07:55**, and every task has a
 - **Drag and drop** an item to reorder the routine (mouse or finger). A plain
   tap still ticks. The order is remembered across days.
 - A second, smaller **Eltern** checklist below it holds untimed to-dos
-  (Znüni, water bottle; swim stuff on swim days; rain gear on rainy days).
+  (Znüni, water bottle; library books on Mondays; swim stuff on swim days; rain gear on rainy days).
   They count: the morning is only finished when both lists are ticked. Once
   the kid's list is done, the middle shows the parents' next open to-do
   ("noch 2 Sachen · für die Eltern") and **Fertig** ticks that.
@@ -74,7 +74,8 @@ The morning has a hard window, **07:15 to 07:55**, and every task has a
 | 3 min  | Aufs WC gehen        |
 | 2 min  | Tschüss sagen        |
 
-Parents: Znüni vorbereiten, Wasserflasche füllen, Badesachen einpacken
+Parents: Znüni vorbereiten, Wasserflasche füllen, Bibliothek (Mondays),
+Badesachen einpacken
 (swim days), Regensachen (rainy days).
 
 Badesachen shows every Friday by default. If swimming is only on some
