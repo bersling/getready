@@ -70,9 +70,10 @@ The morning has a hard window, **07:15 to 07:55**, and every task has a
 | 7 min  | Zähne putzen         |
 | 4 min  | Haare kämmen         |
 | 9 min  | Anziehen             |
-| 5 min  | Schuhe und Jacke     |
 | 3 min  | Aufs WC gehen        |
+| 2 min  | Jacke anziehen       |
 | 2 min  | Tschüss sagen        |
+| 3 min  | Schuhe anziehen      |
 
 Parents: Znüni vorbereiten, Wasserflasche füllen, Bibliothek (Mondays),
 Badesachen einpacken
@@ -100,8 +101,9 @@ https://bersling.github.io/getready/#buddy=Name&buddyDays=1,4,5&swim=2026-08-28,
 
 Open the link once on the device (or add it to the home screen). Opening a
 link with a new hash replaces all saved settings, so always send the full set.
-Keep the real link out of this repo; `personal-link.txt` is git-ignored for
-that.
+For local `index.html` use, an optional git-ignored `personal.js` next to
+`index.html` can also set `window.GETREADY_PERSONAL`. Keep real personal data
+out of this repo; `personal-link.txt` and `personal.js` are git-ignored.
 
 To change it, edit `START`, `END` and the `TASKS` array at the top of the
 script in `index.html`. If the budgets don't add up to the window, they're

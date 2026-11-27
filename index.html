@@ -393,6 +393,7 @@
   </div>
 </div>
 
+<script src="personal.js"></script>
 <script>
 // ---------------------------------------------------------------
 // Edit the routine here. The morning runs from START to END (24h
@@ -408,12 +409,14 @@ const TASKS = [
   { id: "teeth",   min: 7,  emoji: "🪥", name: "Zähne putzen" },
   { id: "hair",    min: 4,  emoji: "🪮", name: "Haare kämmen" },
   { id: "dress",   min: 9,  emoji: "👕", name: "Anziehen" },
-  { id: "shoes",   min: 5,  emoji: "🧥", name: "Schuhe und Jacke" },
   { id: "toilet",  min: 3,  emoji: "🚽", name: "Aufs WC gehen" },
+  { id: "jacket",  min: 2,  emoji: "🧥", name: "Jacke anziehen" },
   { id: "goodbye", min: 2,  emoji: "👋", name: "Tschüss sagen" },
+  { id: "shoes",   min: 3,  emoji: "👟", name: "Schuhe anziehen" },
 ];
 // Personal settings are not in this file (it is public). They come from the
-// link's hash, which never reaches a server, and are remembered on the device:
+// link's hash, which never reaches a server, and are remembered on the device
+// (or from an optional git-ignored personal.js next to this file):
 //   index.html#buddy=Name&buddyDays=1,4,5&swim=2026-08-28,2026-09-11&lat=47.4&lon=8.5
 // buddy:     who she walks to school with; buddyDays: on which weekdays (1 = Monday)
 // swim:      swim days ("YYYY-MM-DD"); without it, swim stuff shows every Friday
@@ -427,8 +430,16 @@ const PERSONAL = (() => {
   } catch (e) {}
   const h = new URLSearchParams(raw);
   const list = k => (h.get(k) || "").split(",").map(x => x.trim()).filter(Boolean);
-  return { buddy: h.get("buddy"), buddyDays: list("buddyDays").map(Number), swim: list("swim"),
-           lat: Number(h.get("lat")) || null, lon: Number(h.get("lon")) || null };
+  const local = window.GETREADY_PERSONAL || {};
+  const buddyDays = list("buddyDays").map(Number);
+  const swim = list("swim");
+  return {
+    buddy: h.get("buddy") || local.buddy || null,
+    buddyDays: buddyDays.length ? buddyDays : (local.buddyDays || []),
+    swim: swim.length ? swim : (local.swim || []),
+    lat: Number(h.get("lat")) || local.lat || null,
+    lon: Number(h.get("lon")) || local.lon || null,
+  };
 })();
 // Parents' to-dos: no timer, just tick them off. Optional `days` limits an
 // item to certain weekdays (0 = Sunday ... 5 = Friday, 6 = Saturday),
@@ -501,10 +512,14 @@ const save = () => {
 const ORDER_KEY = "getready:order";
 let order = TASKS.slice();
 try {
-  const ids = JSON.parse(localStorage.getItem(ORDER_KEY) || "[]");
+  let ids = JSON.parse(localStorage.getItem(ORDER_KEY) || "[]");
+  // migrate old combined "shoes" (Schuhe und Jacke) -> jacket in place, shoes last
+  const migrated = ids.includes("shoes") && !ids.includes("jacket");
+  if (migrated) ids = ids.map(id => id === "shoes" ? "jacket" : id);
   const byId = new Map(TASKS.map(t => [t.id, t]));
   const known = ids.filter(id => byId.has(id)).map(id => byId.get(id));
   order = known.concat(TASKS.filter(t => !known.includes(t)));   // new tasks go last
+  if (migrated) localStorage.setItem(ORDER_KEY, JSON.stringify(order.map(t => t.id)));
 } catch (e) {}
 const saveOrder = () => {
   try { localStorage.setItem(ORDER_KEY, JSON.stringify(order.map(t => t.id))); } catch (e) {}
